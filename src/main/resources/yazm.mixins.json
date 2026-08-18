@@ -4,7 +4,8 @@
   "package": "com.silzy.yazm.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "GameRendererMixin"
+    "GameRendererMixin",
+    "MouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

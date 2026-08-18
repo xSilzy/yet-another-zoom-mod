@@ -7,7 +7,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import static com.silzy.yazm.client.util.YazmHelper.getDeltaTime;
 import static com.silzy.yazm.client.util.YazmHelper.updateFov;
 
 @Mixin(GameRenderer.class)
@@ -19,6 +18,7 @@ public class GameRendererMixin {
             cancellable = true
     )
     private void getFov(Camera camera, float tickProgress, boolean changingFov, CallbackInfoReturnable<Float> info){
-        info.setReturnValue(updateFov(info.getReturnValue(), getDeltaTime()));
+        info.setReturnValue(updateFov(info.getReturnValue()));
     }
+
 }
