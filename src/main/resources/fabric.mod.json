@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "yazm",
+  "version": "${version}",
+  "name": "yet-another-zoom-mod",
+  "description": "Yet Another Zoom Mod!",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/yazm/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "com.silzy.yazm.client.YazmDataGenerator"
+    ],
+    "client": [
+      "com.silzy.yazm.client.YazmClient"
+    ],
+    "main": [
+      "com.silzy.yazm.Yazm"
+    ]
+  },
+  "mixins": [
+    "yazm.mixins.json",
+    {
+      "config": "yazm.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
