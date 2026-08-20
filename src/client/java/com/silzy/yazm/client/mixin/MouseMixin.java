@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import static com.silzy.yazm.client.util.YazmHelper.*;
+import static java.lang.Math.clamp;
 
 @Mixin(Mouse.class)
 public class MouseMixin {
@@ -19,8 +20,9 @@ public class MouseMixin {
                     target = "Lnet/minecraft/client/network/ClientPlayerEntity;changeLookDirection(DD)V"
             )
     )
-    private void function(ClientPlayerEntity player, double x, double y) {
+    private void decreaseMouseSens(ClientPlayerEntity player, double x, double y) {
         float mouseScaling = getMouseScaling();
+        mouseScaling = clamp(mouseScaling, 0, 150_000); // too high values cause glitching
         if (mouseScaling != 1){
             x = x / mouseScaling;
             y = y / mouseScaling;

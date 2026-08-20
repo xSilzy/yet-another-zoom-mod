@@ -1,5 +1,6 @@
 package com.silzy.yazm.client.util;
 
+import com.silzy.yazm.client.YazmConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
@@ -17,50 +18,28 @@ public class YazmHelper {
     public final static String MOD_ID = "YAZM";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    // Keys
     public static KeyBinding zoomKey;
 
-    // Config variables (move to config later)
-    private static float zoomInSpeed = 1f; // in seconds
-    private static float zoomOutSpeed = 0.5f; // in seconds
-    private static float initZoom = 5f;
-    private static float scrollZoomSteps = 0.25f;
-    private static float zoomLimit = 100f;
-    private static float scrollSmoothness = 10f; // at least 1 more than 10 doesn't give a huge increase in snappiness | low = smooth, high = snappy
-
-    private static boolean hideHud = false;
-    private static boolean cinematicCam = false;
-    private static boolean changeMouseSens = true;
-    private static boolean toggleZoom = false;
-    private static boolean resetZoom = true;
-    private static boolean scrollZoom = true;
-    private static boolean smoothScroll = true;
-    private static boolean limitZoom = false;
+    private static MinecraftClient client;
+    private static final YazmConfig config =  new YazmConfig();
 
     // State tracking
-    private static float interpolant; // position between interpolations
-
+    private static float interpolant;
     private static boolean isZooming;
     private static boolean isToggle;
     private static boolean preHidden;
     private static boolean preCinematic;
-    private static float maxZoom = initZoom; // x times zoom
-    private static float targetZoom = initZoom; // x times zoom
-
-
-    private static MinecraftClient client;
+    private static float maxZoom;
+    private static float targetZoom;
 
 
     public static void initYazm() {
         client = MinecraftClient.getInstance();
         if (client == null) {LOGGER.error("Couldn't Initialize Client!");}
 
-        zoomKey = newKeyBind(
-                InputUtil.Type.KEYSYM,
-                InputUtil.GLFW_KEY_Z,
-                MOD_ID,
-                "zoom",
-                "zoom");
+        config.initConfig();
+        initZoom();
+
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean prevIsZooming = isZooming;
@@ -71,8 +50,14 @@ public class YazmHelper {
                 onDeactivate();
             }
         });
+    }
 
-        LOGGER.info("{} initialized successfully!", MOD_ID);
+    public static void initZoom(){
+        float initZoom = config.general.getInitZoom();
+        maxZoom = initZoom;
+        targetZoom = initZoom;
+
+        zoomKey = newKeyBind(InputUtil.Type.KEYSYM, InputUtil.GLFW_KEY_Z, MOD_ID, "zoom", "zoom");
     }
 
     private static boolean canZoom() {
@@ -91,6 +76,13 @@ public class YazmHelper {
     }
 
     public static float getFovScaling(float fov){
+        // getting the values from the config
+        float zoomInSpeed = config.general.getZoomInSpeed();
+        float zoomOutSpeed = config.general.getZoomOutSpeed();
+
+        boolean smoothScroll = config.scrollZooming.smoothScrolling.isSmoothScroll();
+        float scrollSmoothness = config.scrollZooming.smoothScrolling.getScrollSmoothness();
+
         float deltaTime = getDeltaTime();
 
         float zoomDirection = (isZooming || isToggle ? 1 : -1);
@@ -107,6 +99,7 @@ public class YazmHelper {
     }
 
     public static float getMouseScaling(){
+        boolean changeMouseSens = config.general.isChangeMouseSens();
         if (!changeMouseSens) return 1;
 
         // 1:1 mouseSens:ZoomLevel
@@ -114,7 +107,13 @@ public class YazmHelper {
     }
 
     public static boolean scrollZoom(float vertical){
-        if (isZooming && scrollZoom) {
+        boolean scrollZoom = config.scrollZooming.isScrollZoom();
+        float scrollZoomSteps = config.scrollZooming.getScrollZoomSteps();
+        boolean limitZoom = config.scrollZooming.isLimitZoom();
+        float zoomLimit = config.scrollZooming.getZoomLimit();
+        boolean smoothScroll = config.scrollZooming.smoothScrolling.isSmoothScroll();
+
+        if ((isZooming && scrollZoom) || (isToggle && scrollZoom)) {
 
             targetZoom *= 1 + (scrollZoomSteps * vertical);
             if (targetZoom < 1) targetZoom = 1;
@@ -129,36 +128,57 @@ public class YazmHelper {
     }
 
     public static void onZoom(){
-        if (maxZoom != initZoom && resetZoom) {maxZoom = initZoom; targetZoom = initZoom; interpolant = 0;}
-        else if(maxZoom <= 1 && !resetZoom) {
+        float initZoom = config.general.getInitZoom();
+        boolean resetZoom = config.general.isResetZoom();
+        boolean shouldRemind = config.general.isEnableResetZoomReminder();
+        boolean toggleZoom = config.general.isToggleZoom();
+        boolean hideHud = config.general.isHideHud();
+        boolean cinematicCam = config.general.isCinematicCam();
+
+        if (maxZoom != initZoom && resetZoom) {maxZoom = initZoom; interpolant = 0;}
+
+        if(maxZoom <= 1.1 && !resetZoom && shouldRemind) {
+            // add ingame warning/reminder message
             LOGGER.info("resetZoom is off!");
         }
+        targetZoom = maxZoom;
 
 
-        if (toggleZoom) {
-            isToggle = !isToggle;
-        } else {
-            isToggle = false;
+
+        if (!isToggle) {
+            preHidden = client.options.hudHidden;
+            if (hideHud && !preHidden) {
+                preHidden = false;
+                client.options.hudHidden = true;
+            }
+
+            preCinematic = client.options.smoothCameraEnabled;
+            if (cinematicCam && !preCinematic) {
+                preCinematic = false;
+                client.options.smoothCameraEnabled = true;
+            }
         }
-        preHidden = client.options.hudHidden;
-        if (hideHud && !client.options.hudHidden) {
-            preHidden = false;
-            client.options.hudHidden = true;
-        }
-        preCinematic = client.options.smoothCameraEnabled;
-        if (cinematicCam && !client.options.smoothCameraEnabled) {
-            preCinematic = false;
-            client.options.smoothCameraEnabled = true;
-        }
+
+        isToggle = toggleZoom ? !isToggle : false;
     }
 
     public static void onDeactivate(){
-        if (!preHidden && hideHud){
-            client.options.hudHidden = false;
+        float initZoom = config.general.getInitZoom();
+        boolean resetZoom = config.general.isResetZoom();
+        boolean hideHud = config.general.isHideHud();
+        boolean cinematicCam = config.general.isCinematicCam();
+
+        if (!isToggle) {
+            if (!preHidden && hideHud) {
+                client.options.hudHidden = false;
+            }
+
+            if (!preCinematic && cinematicCam){
+                client.options.smoothCameraEnabled = false;
+            }
+
         }
-        if (!preCinematic && cinematicCam){
-            client.options.smoothCameraEnabled = false;
-        }
+
     }
 
 // abstract into dynamic easing selection
