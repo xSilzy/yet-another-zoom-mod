@@ -6,9 +6,8 @@
 
 package com.silzy.yazm.client;
 
-import com.silzy.yazm.client.util.ConfigFile;
+import com.silzy.yazm.client.dataTypes.ConfigFile;
 
-import static com.silzy.yazm.client.util.YazmHelper.LOGGER;
 import static com.silzy.yazm.client.util.YazmHelper.MOD_ID;
 
 public class YazmConfig extends ConfigFile {
@@ -20,8 +19,7 @@ public class YazmConfig extends ConfigFile {
     public ScrollZooming scrollZooming = new ScrollZooming(this::saveConfig);
 
 
-
-    // Categories(classes) that make out the config
+    // Categories(classes) that make up the config
     public static class General{
         private transient Runnable save;
         public General(Runnable save){
@@ -29,17 +27,16 @@ public class YazmConfig extends ConfigFile {
         }
 
         float initZoom = 5f;
+        boolean showZoomLevel = false;
         float zoomInSpeed = 1f; // in seconds
         float zoomOutSpeed = 0.5f; // in seconds
+        String easingFunction = "easeInOutQuartic";
         boolean toggleZoom = false;
 
         boolean hideHud = false;
         boolean cinematicCam = false;
         boolean changeMouseSens = true;
         boolean resetZoom = true;
-
-
-
         boolean enableResetZoomReminder = true;
 
         public float getInitZoom() {
@@ -48,7 +45,13 @@ public class YazmConfig extends ConfigFile {
         public void setInitZoom(float initZoom) {
             this.initZoom = initZoom;
             if(save != null) save.run();
-            LOGGER.info("Set Init Zoom to: {}, if its not saved the runnable didnt run", initZoom);
+        }
+        public boolean isShowZoomLevel() {
+            return showZoomLevel;
+        }
+        public void setShowZoomLevel(Boolean showZoomLevel) {
+            this.showZoomLevel = showZoomLevel;
+            if(save != null) save.run();
         }
         public float getZoomInSpeed() {
             return zoomInSpeed;
@@ -62,6 +65,13 @@ public class YazmConfig extends ConfigFile {
         }
         public void setZoomOutSpeed(float zoomOutSpeed) {
             this.zoomOutSpeed = zoomOutSpeed;
+            if(save != null) save.run();
+        }
+        public String getEasingFunction() {
+            return easingFunction;
+        }
+        public void setEasingFunction(String easingFunction) {
+            this.easingFunction = easingFunction;
             if(save != null) save.run();
         }
         public boolean isToggleZoom() {
@@ -117,8 +127,8 @@ public class YazmConfig extends ConfigFile {
 
         boolean scrollZoom = true;
         float scrollZoomSteps = 0.25f;
-        boolean limitZoom = false;
-        float zoomLimit = 100f;
+        boolean limitZoom = true;
+        float zoomLimit = 50f;
 
         public smoothScrolling smoothScrolling = new smoothScrolling(save);
 

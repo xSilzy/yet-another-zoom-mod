@@ -4,11 +4,10 @@
  * Licensed under GNU GPLv3. See LICENSE for details.
  */
 
-package com.silzy.yazm.client.util;
+package com.silzy.yazm.client.dataTypes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.annotations.Expose;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.BufferedReader;
@@ -64,6 +63,14 @@ public abstract class ConfigFile {
         } catch (Exception e){
             e.printStackTrace();
         }
+        saveConfig(); // update save file in case new values were added
+    }
+
+    public void deleteConfigFile() throws IOException {
+        if(!Files.deleteIfExists(configPath)){
+            LOGGER.warn("Failed to delete config file at {}!", configPath);
+        }
+
     }
 
     private void copyFields(Object src, Object dest) throws IllegalAccessException {

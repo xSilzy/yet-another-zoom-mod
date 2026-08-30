@@ -7,11 +7,14 @@
 package com.silzy.yazm.client.util;
 
 import com.silzy.yazm.client.YazmConfig;
+import com.silzy.yazm.client.dataTypes.EasingFunction;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,17 +40,18 @@ public class YazmHelper {
     private static boolean preCinematic;
     private static float maxZoom;
     private static float targetZoom;
+    private static boolean isUsingSpyglass;
 
 
     public static void initYazm() {
         client = MinecraftClient.getInstance();
         if (client == null) {LOGGER.error("Couldn't Initialize Client!");}
-
         config.initConfig();
         initZoom();
 
-
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player != null) isUsingSpyglass = client.player.isUsingSpyglass();
+
             boolean prevIsZooming = isZooming;
             isZooming = canZoom();
 
@@ -73,7 +77,7 @@ public class YazmHelper {
                 && client.player.isAlive()
                 && client.currentScreen == null;
 
-        return zoomKey.isPressed() && isPlaying;
+        return isPlaying && zoomKey.isPressed() || isPlaying && isUsingSpyglass;
     }
 
     public static float updateFov(float fov){
@@ -81,8 +85,7 @@ public class YazmHelper {
         return fov / getFovScaling(fov);
     }
 
-    public static float getFovScaling(float fov){
-        // getting the values from the config
+    private static float getFovScaling(float fov){
         float zoomInSpeed = config.general.getZoomInSpeed();
         float zoomOutSpeed = config.general.getZoomOutSpeed();
 
@@ -97,19 +100,24 @@ public class YazmHelper {
         interpolant = clamp(interpolant, 0, 1);
 
 
+        boolean showZoomLevel = config.general.isShowZoomLevel();
+
         if (maxZoom != targetZoom && smoothScroll){
             maxZoom = lerp(clamp(scrollSmoothness * deltaTime, 0 ,1), maxZoom, targetZoom);
+            if (showZoomLevel) showZoomLevel();
         }
 
-        return lerp(easeInOutQuart(interpolant), 1, maxZoom); // adapt this to be interchangeable
+        EasingFunction fovEasingFunc = EasingHelper.getFunc(config.general.getEasingFunction());
+        return lerp(fovEasingFunc.ease(interpolant), 1, maxZoom);
     }
 
     public static float getMouseScaling(){
+        float currentFov = maxZoom;
         boolean changeMouseSens = config.general.isChangeMouseSens();
         if (!changeMouseSens) return 1;
 
-        // 1:1 mouseSens:ZoomLevel
-        return lerp(easeInOutQuart(interpolant), 1, maxZoom);
+        EasingFunction mouseEasingFunc = EasingHelper.getFunc(config.general.getEasingFunction());
+        return lerp(mouseEasingFunc.ease(interpolant), 1, currentFov);
     }
 
     public static boolean scrollZoom(float vertical){
@@ -128,27 +136,34 @@ public class YazmHelper {
             if (!smoothScroll){
                 maxZoom = targetZoom;
             }
+
+
             return true;
         }
         return false;
     }
 
-    public static void onZoom(){
+    private static void onZoom(){
         float initZoom = config.general.getInitZoom();
         boolean resetZoom = config.general.isResetZoom();
         boolean shouldRemind = config.general.isEnableResetZoomReminder();
         boolean toggleZoom = config.general.isToggleZoom();
         boolean hideHud = config.general.isHideHud();
         boolean cinematicCam = config.general.isCinematicCam();
+        boolean showZoomLevel = config.general.isShowZoomLevel();
 
         if (maxZoom != initZoom && resetZoom) {maxZoom = initZoom; interpolant = 0;}
-
-        if(maxZoom <= 1.1 && !resetZoom && shouldRemind) {
-            // add ingame warning/reminder message
-            LOGGER.info("resetZoom is off!");
-        }
+        if (isUsingSpyglass && resetZoom && !isToggle) maxZoom = 1;
         targetZoom = maxZoom;
 
+
+        if (showZoomLevel) showZoomLevel();
+
+
+        if(maxZoom <= 1.5 && !resetZoom && shouldRemind && !isUsingSpyglass) {
+            Text warnMessage = Text.literal("Zoom level < 1.5").formatted(Formatting.RED);
+            sendActionBarMessage(warnMessage);
+        }
 
 
         if (!isToggle) {
@@ -165,12 +180,10 @@ public class YazmHelper {
             }
         }
 
-        isToggle = toggleZoom ? !isToggle : false;
+        isToggle = toggleZoom && !isUsingSpyglass ?  !isToggle : false;
     }
 
-    public static void onDeactivate(){
-        float initZoom = config.general.getInitZoom();
-        boolean resetZoom = config.general.isResetZoom();
+    private static void onDeactivate(){
         boolean hideHud = config.general.isHideHud();
         boolean cinematicCam = config.general.isCinematicCam();
 
@@ -182,31 +195,22 @@ public class YazmHelper {
             if (!preCinematic && cinematicCam){
                 client.options.smoothCameraEnabled = false;
             }
-
         }
+    }       
 
-    }
-
-// abstract into dynamic easing selection
-    private static float easeInOutCubic(float i){
-        return i < 0.5 ? 4 * i * i * i : (float) (1 - Math.pow(-2 * i + 2, 3) / 2); // Ease in out cubic
-    }
-    private static float easeInOutQuad(float i){
-        return i < 0.5 ? 2 * i * i : (float) (1 - Math.pow(-2 * i + 2, 2) / 2); // Ease in out Quadratic
-    }
-    private static float easeInOutQuart(float i){
-        return i < 0.5 ? 8 * i * i * i * i : (float) (1 - Math.pow(-2 * i + 2, 4) / 2); // Ease in out Quartic
-    }
-    private static float easeOutElastic(float i){
-        float c4 = (float) ((2 * Math.PI) / 3);
-        return (float) (Math.pow(2, -10 * i) * Math.sin((i * 10 - 0.75) * c4) + 1); // Ease out Elastic
+    private static void showZoomLevel(){
+        sendActionBarMessage(Text.literal("Zoom level: " + (float) Math.round(maxZoom * 10)/10));
     }
 
-    public static float getDeltaTime() {
+    private static void sendActionBarMessage(CharSequence message) {
+        if (client.player != null) client.player.sendMessage((Text) message, true);
+    }
+    private static void sendActionBarMessage(Text message) {
+        if (client.player != null) client.player.sendMessage(message, true);
+    }
+    private static float getDeltaTime() {
         return client.getRenderTickCounter().getFixedDeltaTicks() / 20f;
     }
-
-
     private static KeyBinding newKeyBind(InputUtil.Type keyType, int keyBind, CharSequence modName , CharSequence keyName, CharSequence keyCategory) {
         // Preparing the strings
         modName = modName.toString().toLowerCase().replaceAll("[^a-z0-9/._-]","-");
