@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import static com.silzy.yazm.client.util.YazmHelper.updateFov;
+import static com.silzy.yazm.client.zoom.ZoomHandler.updateFov;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {

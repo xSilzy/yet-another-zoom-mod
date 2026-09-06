@@ -8,7 +8,7 @@ package com.silzy.yazm.client;
 
 import net.fabricmc.api.ClientModInitializer;
 
-import static com.silzy.yazm.client.util.YazmHelper.initYazm;
+import static com.silzy.yazm.client.core.Yazm.initYazm;
 
 public class YazmClient implements ClientModInitializer {
 

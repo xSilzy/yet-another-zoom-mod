@@ -4,13 +4,11 @@
  * Licensed under GNU GPLv3. See LICENSE for details.
  */
 
-package com.silzy.yazm.client.util;
-
-import com.silzy.yazm.client.dataTypes.EasingFunction;
+package com.silzy.yazm.client.math;
 
 import java.util.HashMap;
 import java.util.Map;
-import static com.silzy.yazm.client.util.YazmHelper.LOGGER;
+import static com.silzy.yazm.client.core.Yazm.LOGGER;
 
 public class EasingHelper {
     private static final Map<String, EasingFunction> FUNCTIONS = new HashMap<>();
@@ -29,7 +27,7 @@ public class EasingHelper {
 
     public static EasingFunction getFunc(String functionName){
         EasingFunction func = FUNCTIONS.getOrDefault(functionName, defaultFunc);
-//        if (func == defaultFunc) LOGGER.warn("Function {} not found using default func!", functionName);
+        if (func == defaultFunc) LOGGER.warn("'{}' not found using default func", functionName);
         return func;
     }
 

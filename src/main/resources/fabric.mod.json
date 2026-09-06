@@ -3,10 +3,10 @@
   "id": "yazm",
   "version": "${version}",
   "name": "yet-another-zoom-mod",
-  "description": "Yet Another Zoom Mod!",
-  "authors": [],
+  "description": "Yet another zoom mod with a lot of features!",
+  "authors": ["Silzy"],
   "contact": {},
-  "license": "All-Rights-Reserved",
+  "license": "GPLv3",
   "icon": "assets/yazm/icon.png",
   "environment": "client",
   "entrypoints": {
@@ -30,6 +30,7 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",
-    "minecraft": "${minecraft_version}"
+    "minecraft": "${minecraft_version}",
+    "owo": "*"
   }
 }

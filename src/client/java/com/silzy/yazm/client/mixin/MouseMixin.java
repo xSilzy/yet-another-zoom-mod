@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import static com.silzy.yazm.client.util.YazmHelper.*;
+import static com.silzy.yazm.client.zoom.ZoomHandler.*;
 import static java.lang.Math.clamp;
 
 @Mixin(Mouse.class)
